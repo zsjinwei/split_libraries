@@ -21,7 +21,7 @@ def delete_dire(dire):
 # input_file: 输入barcode fastq文件
 # barcodes_need_count: barcode类别数量
 # barcode_len: barcode类别长度
-def extract_barcode(input_file, barcodes_need_count, barcode_len):
+def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
     count = 0
     barcodes = {}
     item = []
@@ -30,7 +30,7 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len):
         # print(line.strip())
         item.append(line)
         if (count+1) % barcode_line == 0:
-            barcode = item[1][0:12]
+            barcode = item[1][0:barcode_len]
 
             if barcode in barcodes.keys():
                 # res_fd = open(output_path + str(barcode) + ".fastq", "a+")
@@ -48,9 +48,11 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len):
                 # res_fd.write(item[3])
                 # res_fd.close()
                 p = re.compile(r'^@.*?:.*?:.*?:.*?:.*?:(.*?:.*?) ')
-                barcode_id = p.findall("@MISEQ01:343:000000000-C66G5:1:1101:13062:1226 1:N:0:TCCGGAGATATAGCCT")[0]
+                barcode_id = p.findall(item[0])[0]
                 if(barcode_id == ""):
                     print("Got empty barcode_id")
+                    item = []
+                    continue
                 barcodes[barcode] = []
                 barcodes[barcode].append(barcode_id + "*" + str(count - 3))
             item = []
@@ -167,8 +169,8 @@ if __name__ == "__main__":
     # meta_pass_line = 2 # meta文件里面多少行文件头
     # R1_output_suffix = "_R1" # 输出R1文件名后缀
     # R2_output_suffix = "_R2" # 输出R2文件名后缀
-    print(sys.argv[1])
-    if(len(sys.argv) < 12):
+
+    if(len(sys.argv) != 12):
         usage(sys.argv[0])
         exit()
 
@@ -199,8 +201,9 @@ if __name__ == "__main__":
     # R1_file = 'part_R1_part.fastq'
     # R2_file = 'part_R2_part.fastq'
 
-    barcodes_R1_need = extract_barcode(R1_file, R1_type_count, barcode_len)
-    barcodes_R2_need = extract_barcode(R2_file, R2_type_count, barcode_len)
+    # 提取barcode类型
+    barcodes_R1_need = extract_barcode(R1_file, R1_type_count, barcode_len, barcode_line)
+    barcodes_R2_need = extract_barcode(R2_file, R2_type_count, barcode_len, barcode_line)
 
     endtime = datetime.datetime.now()
     print("extract barcode spend " + str((endtime - starttime).seconds) + " sec")
