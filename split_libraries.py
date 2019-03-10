@@ -32,6 +32,12 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
         if (count+1) % barcode_line == 0:
             barcode = item[1][0:barcode_len]
 
+            p = re.compile(r'^@.*?:.*?:.*?:.*?:.*?:(.*?:.*?) ')
+            barcode_id = p.findall(item[0])[0]
+            if(barcode_id == ""):
+                print("Got empty barcode_id")
+                item = []
+                continue
             if barcode in barcodes.keys():
                 # res_fd = open(output_path + str(barcode) + ".fastq", "a+")
                 # res_fd.write(item[0])
@@ -39,7 +45,7 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
                 # res_fd.write(item[2])
                 # res_fd.write(item[3])
                 # res_fd.close()
-                barcodes[barcode].append(item[0][36:46] + "*" + str(count - 3))
+                barcodes[barcode].append(barcode_id + "*" + str(count - 3))
             else:
                 # res_fd = open(output_path + str(barcode) + ".fastq", "a+")
                 # res_fd.write(item[0])
@@ -47,12 +53,6 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
                 # res_fd.write(item[2])
                 # res_fd.write(item[3])
                 # res_fd.close()
-                p = re.compile(r'^@.*?:.*?:.*?:.*?:.*?:(.*?:.*?) ')
-                barcode_id = p.findall(item[0])[0]
-                if(barcode_id == ""):
-                    print("Got empty barcode_id")
-                    item = []
-                    continue
                 barcodes[barcode] = []
                 barcodes[barcode].append(barcode_id + "*" + str(count - 3))
             item = []
@@ -94,7 +94,7 @@ def id_match_type(type_match_id):
 # id_match_type_R2: 从文件2得到的type-id转换后的id-type表
 # input_file: 文件1输入文件（将会从此文件读取指定行输出到结果文件）
 # output_path: 输出文件路径
-def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, input_file, output_path, out_suffix):
+def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, input_file, output_path, out_suffix, barcode_line):
     found_id_count = 0
     miss_id_count = 0
     open_files = {}
@@ -102,14 +102,14 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, inp
     for item in barcodes_R1:
         R1_type = item[0]
         for i in range(len(item[1])):
-            id_line = item[1][i].split('*')
-            id = id_line[0]
-            line = id_line[1]
-            if id in id_match_type_R2.keys():
-                R2_type_line = id_match_type_R2[id]
+            R1_id_line = item[1][i].split('*')
+            R1_id = R1_id_line[0]
+            R1_line = int(R1_id_line[1])
+            if R1_id in id_match_type_R2.keys():
+                R2_type_line = id_match_type_R2[R1_id]
                 R2_type = R2_type_line[0]
                 R2_line = R2_type_line[1]
-                re = linecache.getlines(input_file)[R2_line : R2_line + barcode_line]
+                re = linecache.getlines(input_file)[R1_line : R1_line + barcode_line]
                 # file_path = output_path + '/' + R1_type + "_" + R2_type + ".fastq"
                 if (R1_type + R2_type) not in file_sample_meta_data.keys():
                     print((R1_type + R2_type) + " is not in metadata")
@@ -127,7 +127,7 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, inp
 
                 found_id_count += 1
             else:
-                print("Warning: id = " + id + " is not found")
+                print("Warning: id = " + R1_id + " is not found")
                 miss_id_count += 1
                 pass
 
@@ -225,8 +225,8 @@ if __name__ == "__main__":
 
     type_sample = load_metadata(metadata_file, meta_pass_line, barcode_len)
 
-    R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix)
-    R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix)
+    R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
+    R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
 
     endtime = datetime.datetime.now()
     print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
