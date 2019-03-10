@@ -6,6 +6,7 @@ import subprocess
 import os, sys, re
 import linecache
 import datetime
+from tqdm import tqdm
 
 # 删除非空文件夹
 def delete_dire(dire):
@@ -26,7 +27,7 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
     barcodes = {}
     item = []
     fd = open(input_file, 'r')
-    for line in fd.readlines():
+    for line in tqdm(fd.readlines(), desc="extract_barcode " + input_file):
         # print(line.strip())
         item.append(line)
         if (count+1) % barcode_line == 0:
@@ -81,7 +82,7 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
 # type:id表转id_type表
 def id_match_type(type_match_id):
     id_match_type = {}
-    for item in type_match_id:
+    for item in tqdm(type_match_id, desc="id_match_type"):
         _type = item[0]
         for i in range(len(item[1])):
             id_line = item[1][i].split('*')
@@ -99,7 +100,7 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, inp
     miss_id_count = 0
     open_files = {}
 
-    for item in barcodes_R1:
+    for item in tqdm(barcodes_R1, desc="split_to_type_file " + input_file):
         R1_type = item[0]
         for i in range(len(item[1])):
             R1_id_line = item[1][i].split('*')
@@ -127,7 +128,7 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, inp
 
                 found_id_count += 1
             else:
-                print("Warning: id = " + R1_id + " is not found")
+                # print("Warning: id = " + R1_id + " is not found")
                 miss_id_count += 1
                 pass
 
@@ -140,7 +141,7 @@ def load_metadata(meta_file, pass_line, barcode_len):
     line_count = 0
     type_sample = {}
     fr = open(meta_file, 'r')
-    for line in fr.readlines():
+    for line in tqdm(fr.readlines(), desc="load metadata"):
         line_count += 1
         if line_count <= pass_line:
             continue
@@ -154,9 +155,6 @@ def usage(script_name):
     print("python " + script_name +" R1_file_path R2_file_path Meta_file_path output_path barcode_line barcode_len R1_type_count R2_type_count meta_pass_line R1_output_suffix R2_output_suffix")
 
 if __name__ == "__main__":
-
-    starttime = datetime.datetime.now()
-    global_starttime = starttime
 
     # R1_file = 'L1P1_R1.fastq' # 输入R1文件名
     # R2_file = 'L1P1_R2.fastq' # 输入R2文件名
@@ -201,7 +199,11 @@ if __name__ == "__main__":
     # R1_file = 'part_R1_part.fastq'
     # R2_file = 'part_R2_part.fastq'
 
+    starttime = datetime.datetime.now()
+    global_starttime = starttime
+
     # 提取barcode类型
+    print("\n\nbegin to extract barcode")
     barcodes_R1_need = extract_barcode(R1_file, R1_type_count, barcode_len, barcode_line)
     barcodes_R2_need = extract_barcode(R2_file, R2_type_count, barcode_len, barcode_line)
 
@@ -210,6 +212,7 @@ if __name__ == "__main__":
 
     starttime = datetime.datetime.now()
 
+    print("\n\nbegin to trans type-id table")
     id_match_type_R1 = id_match_type(barcodes_R1_need)
     id_match_type_R2 = id_match_type(barcodes_R2_need)
 
@@ -218,17 +221,27 @@ if __name__ == "__main__":
 
     starttime = datetime.datetime.now()
 
+    print("\n\nbegin to load metadata")
+    type_sample = load_metadata(metadata_file, meta_pass_line, barcode_len)
+
+    endtime = datetime.datetime.now()
+    print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
+
+    starttime = datetime.datetime.now()
+
+    print("\n\nbegin to split to type file")
     delete_dire(output_path) 
 
     os.makedirs(output_path + "/R1_R2")
     os.makedirs(output_path + "/R2_R1")
 
-    type_sample = load_metadata(metadata_file, meta_pass_line, barcode_len)
-
     R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
     R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
 
     endtime = datetime.datetime.now()
+
     print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
-    print("Total time = " + str((endtime - global_starttime).seconds) + " sec")
-    print("Got R1 = " + str(R1_found_id_count) + " found | " + str(R1_miss_id_count) + " miss and R2 = " + str(R2_found_id_count) + " found | " + str(R2_miss_id_count) + " miss")
+    print("\n\nTotal time = " + str((endtime - global_starttime).seconds) + " sec")
+    print("\nGot R1 = " + str(R1_found_id_count) + " found | " + str(R1_miss_id_count) + " miss and R2 = " + str(R2_found_id_count) + " found | " + str(R2_miss_id_count) + " miss")
+    print("\nDone!")
+    exit()
