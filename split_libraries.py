@@ -148,6 +148,7 @@ def load_metadata(meta_file, pass_line, barcode_len):
         lineArr = line.strip().split()
         type_sample[lineArr[1]] = lineArr[0]
         type_sample[lineArr[1][barcode_len:] + lineArr[1][:barcode_len]] = lineArr[0]
+    fr.close()
     return type_sample
 
 def usage(script_name):
