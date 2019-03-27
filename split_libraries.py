@@ -66,18 +66,27 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
     i = 0
     correct_count = 0
     error_count = 0
+    error_barcode_id = []
     for it in barcodes_sorted:
         if(i < barcodes_need_count):
             correct_count += len(it[1])
         else:
             error_count += len(it[1])
+            for id_line_it in it[1]:
+                id_line = id_line_it.split('*')
+                id = id_line[0]
+                line = id_line[1]
+                error_barcode_id.append(id)
         i += 1
+
+    # print(error_barcode_id)
+
     fd.close()
 
     print("Correct rate = " + str((correct_count / (correct_count + error_count))*100) + "% (" + str(correct_count) + "/" + str(error_count) + ")")
 
     # print(barcodes_need)
-    return barcodes_need
+    return barcodes_need, error_barcode_id
 
 # type:id表转id_type表
 def id_match_type(type_match_id):
@@ -95,7 +104,7 @@ def id_match_type(type_match_id):
 # id_match_type_R2: 从文件2得到的type-id转换后的id-type表
 # input_file: 文件1输入文件（将会从此文件读取指定行输出到结果文件）
 # output_path: 输出文件路径
-def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, input_file, output_path, out_suffix, barcode_line):
+def split_to_type_file(barcodes_R1, id_match_type_R2, barcode_id_union, file_sample_meta_data, input_file, output_path, out_suffix, barcode_line):
     found_id_count = 0
     miss_id_count = 0
     open_files = {}
@@ -106,6 +115,13 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, file_sample_meta_data, inp
             R1_id_line = item[1][i].split('*')
             R1_id = R1_id_line[0]
             R1_line = int(R1_id_line[1])
+
+            if R1_id in barcode_id_union:
+                continue
+            else:
+                # print(R1_id + " is error barcode")
+                pass
+
             if R1_id in id_match_type_R2.keys():
                 R2_type_line = id_match_type_R2[R1_id]
                 R2_type = R2_type_line[0]
@@ -205,8 +221,13 @@ if __name__ == "__main__":
 
     # 提取barcode类型
     print("\n\nbegin to extract barcode")
-    barcodes_R1_need = extract_barcode(R1_file, R1_type_count, barcode_len, barcode_line)
-    barcodes_R2_need = extract_barcode(R2_file, R2_type_count, barcode_len, barcode_line)
+    barcodes_R1_need, R1_error_barcode_id = extract_barcode(R1_file, R1_type_count, barcode_len, barcode_line)
+    barcodes_R2_need, R2_error_barcode_id = extract_barcode(R2_file, R2_type_count, barcode_len, barcode_line)
+
+    # 求并集
+    print("\n\nbegin to merge error barcode id")
+    barcode_id_union = list(set(R1_error_barcode_id).union(set(R2_error_barcode_id)))
+    # print(barcode_id_union)
 
     endtime = datetime.datetime.now()
     print("extract barcode spend " + str((endtime - starttime).seconds) + " sec")
@@ -231,13 +252,14 @@ if __name__ == "__main__":
     starttime = datetime.datetime.now()
 
     print("\n\nbegin to split to type file")
-    delete_dire(output_path) 
+    delete_dire(output_path)
 
     os.makedirs(output_path + "/R1_R2")
     os.makedirs(output_path + "/R2_R1")
 
-    R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
-    R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
+    barcode_id_union = list(set(R1_error_barcode_id).union(set(R2_error_barcode_id)))
+    R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, barcode_id_union, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
+    R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, barcode_id_union, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
 
     endtime = datetime.datetime.now()
 
