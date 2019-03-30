@@ -116,12 +116,15 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, barcode_id_union, file_sam
             R1_id = R1_id_line[0]
             R1_line = int(R1_id_line[1])
 
+            starttime = datetime.datetime.now()
             if R1_id in barcode_id_union:
                 continue
             else:
                 # print(R1_id + " is error barcode")
                 pass
 
+            endtime = datetime.datetime.now()
+            print("find barcode_id_union spend " + str((endtime - starttime).seconds) + " sec")
             if R1_id in id_match_type_R2.keys():
                 R2_type_line = id_match_type_R2[R1_id]
                 R2_type = R2_type_line[0]
@@ -224,13 +227,18 @@ if __name__ == "__main__":
     barcodes_R1_need, R1_error_barcode_id = extract_barcode(R1_file, R1_type_count, barcode_len, barcode_line)
     barcodes_R2_need, R2_error_barcode_id = extract_barcode(R2_file, R2_type_count, barcode_len, barcode_line)
 
+    endtime = datetime.datetime.now()
+    print("extract barcode spend " + str((endtime - starttime).seconds) + " sec")
+
+    starttime = datetime.datetime.now()
+
     # 求并集
     print("\n\nbegin to merge error barcode id")
-    barcode_id_union = list(set(R1_error_barcode_id).union(set(R2_error_barcode_id)))
+    barcode_id_union = set(R1_error_barcode_id).union(set(R2_error_barcode_id))
     # print(barcode_id_union)
 
     endtime = datetime.datetime.now()
-    print("extract barcode spend " + str((endtime - starttime).seconds) + " sec")
+    print("merge error barcode spend " + str((endtime - starttime).seconds) + " sec")
 
     starttime = datetime.datetime.now()
 
