@@ -255,7 +255,7 @@ if __name__ == "__main__":
     type_sample = load_metadata(metadata_file, meta_pass_line, barcode_len)
 
     endtime = datetime.datetime.now()
-    print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
+    print("load metadata file spend " + str((endtime - starttime).seconds) + " sec")
 
     starttime = datetime.datetime.now()
 
@@ -265,13 +265,12 @@ if __name__ == "__main__":
     os.makedirs(output_path + "/R1_R2")
     os.makedirs(output_path + "/R2_R1")
 
-    barcode_id_union = list(set(R1_error_barcode_id).union(set(R2_error_barcode_id)))
     R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, barcode_id_union, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
     R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, barcode_id_union, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
 
     endtime = datetime.datetime.now()
 
-    print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
+    print("split to type file spend " + str((endtime - starttime).seconds) + " sec")
     print("\n\nTotal time = " + str((endtime - global_starttime).seconds) + " sec")
     print("\nGot R1 = " + str(R1_found_id_count) + " found | " + str(R1_miss_id_count) + " miss and R2 = " + str(R2_found_id_count) + " found | " + str(R2_miss_id_count) + " miss")
     print("\nDone!")
