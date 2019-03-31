@@ -33,27 +33,15 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
         if (count+1) % barcode_line == 0:
             barcode = item[1][0:barcode_len]
 
-            p = re.compile(r'^@.*?:.*?:.*?:.*?:.*?:(.*?:.*?) ')
+            p = re.compile(r'^@.*?:.*?:.*?:.*?:(.*?:.*?:.*?) ')
             barcode_id = p.findall(item[0])[0]
             if(barcode_id == ""):
                 print("Got empty barcode_id")
                 item = []
                 continue
             if barcode in barcodes.keys():
-                # res_fd = open(output_path + str(barcode) + ".fastq", "a+")
-                # res_fd.write(item[0])
-                # res_fd.write(item[1])
-                # res_fd.write(item[2])
-                # res_fd.write(item[3])
-                # res_fd.close()
                 barcodes[barcode].append(barcode_id + "*" + str(count - 3))
             else:
-                # res_fd = open(output_path + str(barcode) + ".fastq", "a+")
-                # res_fd.write(item[0])
-                # res_fd.write(item[1])
-                # res_fd.write(item[2])
-                # res_fd.write(item[3])
-                # res_fd.close()
                 barcodes[barcode] = []
                 barcodes[barcode].append(barcode_id + "*" + str(count - 3))
             item = []
@@ -90,14 +78,26 @@ def extract_barcode(input_file, barcodes_need_count, barcode_len, barcode_line):
 
 # type:id表转id_type表
 def id_match_type(type_match_id):
+    #id_fd = open('id_dup.txt', 'w+')
     id_match_type = {}
+    idcounter = 0
     for item in tqdm(type_match_id, desc="id_match_type"):
         _type = item[0]
         for i in range(len(item[1])):
             id_line = item[1][i].split('*')
             id = id_line[0]
             line = id_line[1]
+            if id in id_match_type.keys():
+                #re = linecache.getlines(input_file)[id_match_type[id][1]:id_match_type[id][1] + 4]
+                #for it in re:
+                #    id_fd.write(it)
+                #re = linecache.getlines(input_file)[int(line) : int(line) + 4]
+                #for it in re:
+                #    id_fd.write(it)
+                idcounter += 1
             id_match_type[id] = [_type, int(line)]
+    print("duplicate id count = " + str(idcounter))
+    #id_fd.close()
     return id_match_type
 
 # barcodes_R1: 从文件1(R1或R2)得到的type-id表
@@ -109,23 +109,24 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, barcode_id_union, file_sam
     miss_id_count = 0
     open_files = {}
 
+    id_match_type_R2_set = set(id_match_type_R2.keys())
     for item in tqdm(barcodes_R1, desc="split_to_type_file " + input_file):
         R1_type = item[0]
-        for i in range(len(item[1])):
+        R1_ids = item[1]
+        R1_ids.sort()
+        for i in range(len(R1_ids)):
             R1_id_line = item[1][i].split('*')
             R1_id = R1_id_line[0]
             R1_line = int(R1_id_line[1])
 
-            starttime = datetime.datetime.now()
-            if R1_id in barcode_id_union:
-                continue
-            else:
+            #if R1_id not in barcode_id_union:
+            #    continue
+            #else:
                 # print(R1_id + " is error barcode")
-                pass
+            #    pass
 
-            endtime = datetime.datetime.now()
-            print("find barcode_id_union spend " + str((endtime - starttime).seconds) + " sec")
-            if R1_id in id_match_type_R2.keys():
+            #sprint("find barcode_id_union spend " + str((endtime - starttime).seconds) + " sec")
+            if R1_id in id_match_type_R2_set:
                 R2_type_line = id_match_type_R2[R1_id]
                 R2_type = R2_type_line[0]
                 R2_line = R2_type_line[1]
@@ -142,8 +143,9 @@ def split_to_type_file(barcodes_R1, id_match_type_R2, barcode_id_union, file_sam
                     wr_fd = open_files[file_path]
 
                 #wr_fd.write(id + " " + R1_type + " " + str(R2_line) + "\n")
-                for it in re:
-                    wr_fd.write(it)
+                if R1_id in barcode_id_union:
+                    for it in re:
+                        wr_fd.write(it)
 
                 found_id_count += 1
             else:
@@ -169,6 +171,12 @@ def load_metadata(meta_file, pass_line, barcode_len):
         type_sample[lineArr[1][barcode_len:] + lineArr[1][:barcode_len]] = lineArr[0]
     fr.close()
     return type_sample
+
+def get_error_barcode(id_match_type_R1, id_match_type_R2):
+    id_match_type_R1_set = set(id_match_type_R1.keys())
+    id_match_type_R2_set = set(id_match_type_R2.keys())
+    return set(id_match_type_R1_set).intersection(set(id_match_type_R2_set))
+
 
 def usage(script_name):
     # python split_libraries.py L1P1_R1.fastq L1P1_R2.fastq metadata-L1P1.txt ./result 4 12 12 8 2 _R1 _R2
@@ -233,8 +241,8 @@ if __name__ == "__main__":
     starttime = datetime.datetime.now()
 
     # 求并集
-    print("\n\nbegin to merge error barcode id")
-    barcode_id_union = set(R1_error_barcode_id).union(set(R2_error_barcode_id))
+    # print("\n\nbegin to merge error barcode id")
+    # barcode_id_union = set(R1_error_barcode_id).union(set(R2_error_barcode_id))
     # print(barcode_id_union)
 
     endtime = datetime.datetime.now()
@@ -248,6 +256,8 @@ if __name__ == "__main__":
 
     endtime = datetime.datetime.now()
     print("trans type-id table spend " + str((endtime - starttime).seconds) + " sec")
+
+    barcode_id_union = get_error_barcode(id_match_type_R1, id_match_type_R2)
 
     starttime = datetime.datetime.now()
 
@@ -265,7 +275,6 @@ if __name__ == "__main__":
     os.makedirs(output_path + "/R1_R2")
     os.makedirs(output_path + "/R2_R1")
 
-    barcode_id_union = list(set(R1_error_barcode_id).union(set(R2_error_barcode_id)))
     R1_found_id_count, R1_miss_id_count = split_to_type_file(barcodes_R1_need, id_match_type_R2, barcode_id_union, type_sample, R1_file, output_path + "/R1_R2/", R1_output_suffix, barcode_line)
     R2_found_id_count, R2_miss_id_count = split_to_type_file(barcodes_R2_need, id_match_type_R1, barcode_id_union, type_sample, R2_file, output_path + "/R2_R1/", R2_output_suffix, barcode_line)
 
