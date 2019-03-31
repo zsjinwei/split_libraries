@@ -265,7 +265,7 @@ if __name__ == "__main__":
     type_sample = load_metadata(metadata_file, meta_pass_line, barcode_len)
 
     endtime = datetime.datetime.now()
-    print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
+    print("load metadata file spend " + str((endtime - starttime).seconds) + " sec")
 
     starttime = datetime.datetime.now()
 
@@ -280,7 +280,7 @@ if __name__ == "__main__":
 
     endtime = datetime.datetime.now()
 
-    print("slpit to type file spend " + str((endtime - starttime).seconds) + " sec")
+    print("split to type file spend " + str((endtime - starttime).seconds) + " sec")
     print("\n\nTotal time = " + str((endtime - global_starttime).seconds) + " sec")
     print("\nGot R1 = " + str(R1_found_id_count) + " found | " + str(R1_miss_id_count) + " miss and R2 = " + str(R2_found_id_count) + " found | " + str(R2_miss_id_count) + " miss")
     print("\nDone!")
